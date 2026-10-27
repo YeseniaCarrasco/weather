@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Weather by Zip Code{% endblock %}
+
+{% block content %}
+  <h1>Weather by Zip Code</h1>
+  <form method="get" action="{{ url_for('zip_weather') }}">
+    <label for="zip">US zip code</label>
+    <input id="zip" name="zip" value="{{ zip_code }}" inputmode="numeric"
+           pattern="\d{5}" maxlength="5" required autofocus>
+    <button type="submit">Get weather</button>
+  </form>
+  {% if error %}
+    <p class="error">{{ error }}</p>
+  {% elif weather %}
+    <h2>{{ place.name }}</h2>
+    <p class="temp">{{ weather.temperature }}&deg;F</p>
+    <p class="desc">{{ weather.description }}</p>
+  {% endif %}
+  <nav><a href="{{ url_for('index') }}">Back to San Jose</a></nav>
+{% endblock %}

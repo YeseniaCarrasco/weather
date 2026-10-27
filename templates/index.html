@@ -1,41 +1,14 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>San Jose Weather</title>
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      background: #e8f1fa;
-      color: #1d2b3a;
-    }
-    .card {
-      text-align: center;
-      padding: 2rem 3rem;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    }
-    .temp { font-size: 4rem; font-weight: 600; margin: 0.5rem 0; }
-    .desc { font-size: 1.25rem; margin: 0; }
-    .error { color: #b00020; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>San Jose, California</h1>
-    {% if weather %}
-      <p class="temp">{{ weather.temperature }}&deg;F</p>
-      <p class="desc">{{ weather.description }}</p>
-    {% else %}
-      <p class="error">{{ error }}</p>
-    {% endif %}
-  </div>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}San Jose Weather{% endblock %}
+
+{% block content %}
+  <h1>San Jose, California</h1>
+  {% if weather %}
+    <p class="temp">{{ weather.temperature }}&deg;F</p>
+    <p class="desc">{{ weather.description }}</p>
+  {% else %}
+    <p class="error">{{ error }}</p>
+  {% endif %}
+  <nav><a href="{{ url_for('zip_weather') }}">Look up another zip code</a></nav>
+{% endblock %}
