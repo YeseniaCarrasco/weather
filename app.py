@@ -1,6 +1,8 @@
+import os
 import re
+from datetime import datetime
 
-from flask import Flask, render_template, request
+from flask import Flask, make_response, redirect, render_template, request, url_for
 import requests
 
 app = Flask(__name__)
@@ -9,6 +11,10 @@ FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 ZIP_URL = "https://api.zippopotam.us/us/{}"
 SAN_JOSE = {"latitude": 37.3382, "longitude": -121.8863}
 ZIP_PATTERN = re.compile(r"\d{5}")
+REPORTS_FILE = os.path.join(app.root_path, "reports.txt")
+MAX_REPORT_LENGTH = 500
+LAST_ZIP_COOKIE = "last_zip"
+LAST_ZIP_MAX_AGE = 60 * 60 * 24 * 365  # one year
 
 # WMO weather interpretation codes used by Open-Meteo
 WEATHER_CODES = {
@@ -85,19 +91,42 @@ def index():
     except (requests.RequestException, KeyError, ValueError):
         weather = None
         error = "Couldn't load the weather right now. Please try again later."
-    return render_template("index.html", weather=weather, error=error)
+    reported = request.args.get("reported") == "1"
+    return render_template(
+        "index.html", weather=weather, error=error, reported=reported
+    )
+
+
+@app.route("/report", methods=["POST"])
+def report():
+    # Collapse whitespace so each report stays on a single line
+    message = " ".join(request.form.get("message", "").split())
+    message = message[:MAX_REPORT_LENGTH]
+    if not message:
+        return redirect(url_for("index"))
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(REPORTS_FILE, "a", encoding="utf-8") as f:
+        f.write(f"{timestamp} {message}\n")
+    return redirect(url_for("index", reported=1, _anchor="report"))
 
 
 @app.route("/zip")
 def zip_weather():
     zip_code = request.args.get("zip", "").strip()
     place = weather = error = None
-    if zip_code:
+    remember_zip = False
+    if not zip_code:
+        # Pre-fill the box with the visitor's last lookup, without searching
+        last_zip = request.cookies.get(LAST_ZIP_COOKIE, "")
+        if ZIP_PATTERN.fullmatch(last_zip):
+            zip_code = last_zip
+    else:
         if not ZIP_PATTERN.fullmatch(zip_code):
             error = "Please enter a 5-digit US zip code."
         else:
             try:
                 place = lookup_zip(zip_code)
+                remember_zip = True
                 weather = get_current_weather(place["latitude"], place["longitude"])
             except ZipNotFound:
                 place = None
@@ -105,9 +134,13 @@ def zip_weather():
             except (requests.RequestException, KeyError, IndexError, ValueError):
                 place = None
                 error = "Couldn't load the weather right now. Please try again later."
-    return render_template(
+    response = make_response(render_template(
         "zip.html", zip_code=zip_code, place=place, weather=weather, error=error
-    )
+    ))
+    if remember_zip:
+        response.set_cookie(LAST_ZIP_COOKIE, zip_code, max_age=LAST_ZIP_MAX_AGE,
+                            httponly=True, samesite="Lax")
+    return response
 
 
 if __name__ == "__main__":

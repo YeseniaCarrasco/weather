@@ -11,4 +11,12 @@
     <p class="error">{{ error }}</p>
   {% endif %}
   <nav><a href="{{ url_for('zip_weather') }}">Look up another zip code</a></nav>
+  <form id="report" class="report" method="post" action="{{ url_for('report') }}">
+    <label for="message">Report a problem</label>
+    <input id="message" name="message" maxlength="500" required>
+    <button type="submit">Send</button>
+  </form>
+  {% if reported %}
+    <p>Thanks, your report was saved</p>
+  {% endif %}
 {% endblock %}
